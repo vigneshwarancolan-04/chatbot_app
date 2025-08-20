@@ -1,26 +1,47 @@
 name: Deploy Python App to Azure Web App - PDF-ChatBot
 
 on:
-  workflow_dispatch:  # Can be triggered manually
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # allows manual triggering
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write   # required for OIDC
       contents: read
 
     steps:
+      # 1. Checkout your repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Azure
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Create virtual environment and install dependencies
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Login to Azure using OIDC
+      - name: Azure Login via OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-oidc: true
 
+      # 5. Deploy app to Azure Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
@@ -28,6 +49,7 @@ jobs:
           slot-name: 'Production'
           package: .
 
+      # 6. Set startup command (Gunicorn for Flask)
       - name: Set startup command
         run: |
           az webapp config set \
