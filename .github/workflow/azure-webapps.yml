@@ -23,34 +23,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # (Optional) Run tests before deploying
+      # (Optional) Run tests
       # - name: Run tests
       #   run: pytest
-
-      - name: Upload artifact for deployment
-        uses: actions/upload-artifact@v3
-        with:
-          name: python-app
-          path: |
-            app.py
-            requirements.txt
-            templates/
-            static/
-            utils/
-            create_vector_db.py   # (if needed)
-            db_config.py          # (if needed)
-            models/               # (if you have model files)
 
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: python-app
-          path: .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
