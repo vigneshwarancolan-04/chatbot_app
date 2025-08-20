@@ -23,21 +23,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # OPTIONAL: Run tests before deploying
+      # (Optional) Run tests before deploying
       # - name: Run tests
       #   run: pytest
 
-      - name: Azure CLI login
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-app
+          path: |
+            app.py
+            requirements.txt
+            templates/
+            static/
+            utils/
+            create_vector_db.py   # (if needed)
+            db_config.py          # (if needed)
+            models/               # (if you have model files)
+
+      - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set startup command
-        run: |
-          az webapp config set \
-            --resource-group YOUR_RESOURCE_GROUP \
-            --name PDF-ChatBot \
-            --startup-file "gunicorn --bind=0.0.0.0:8000 app:app"
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: python-app
+          path: .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
