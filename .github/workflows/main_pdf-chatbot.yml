@@ -1,3 +1,7 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
 name: Build and deploy Python app to Azure Web App - PDF-ChatBot
 
 on:
@@ -10,72 +14,58 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Required for actions/checkout
+      contents: read #This is required for actions/checkout
 
     steps:
-      # 1️⃣ Checkout repo
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python
-      - name: Set up Python
+      - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3️⃣ Install dependencies (without venv)
-      - name: Install dependencies
+      - name: Create and start virtual environment
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m venv venv
+          source venv/bin/activate
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
-      # 4️⃣ Upload files for deployment (exclude venv, git, __pycache__)
-      - name: Upload artifact for deployment
+      - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
             .
             !venv/
-            !.git/
-            !**/__pycache__/
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write # Required for OIDC auth
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
-      # 1️⃣ Download the artifact
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
-          path: .
-
-      # 2️⃣ Login to Azure
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_CD9A5E46BDB64CA7AF913762F0240C57 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C2C9EE8989C3483982479E07F8953DBD }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_78108EED8B3642C88730AD145E4B8814 }}
 
-      # 3️⃣ Deploy to Azure Web App
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'PDF-ChatBot'
           slot-name: 'Production'
-          package: .
-
-      # 4️⃣ Set the startup command (important!)
-      - name: Set startup command
-        run: |
-          az webapp config set \
-            --resource-group pdf-chatbot-rg \
-            --name PDF-ChatBot \
-            --startup-file "gunicorn --bind=0.0.0.0:8000 app:app"
+          
