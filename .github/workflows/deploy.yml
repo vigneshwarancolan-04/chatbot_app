@@ -46,4 +46,4 @@ jobs:
           az webapp config set \
             --resource-group pdf-chatbot-rg \
             --name PDF-ChatBot \
-            --startup-file "gunicorn --bind=0.0.0.0:8000 app:app"
+            --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
