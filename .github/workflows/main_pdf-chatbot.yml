@@ -58,9 +58,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_CD9A5E46BDB64CA7AF913762F0240C57 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C2C9EE8989C3483982479E07F8953DBD }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_78108EED8B3642C88730AD145E4B8814 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_bb93a37c-5ce1-4952-8c85-1e4e4596bf35 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1d3149dd-3040-4ff2-88f3-a6902396a108 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_a435eee1-e2de-4fce-967c-96def5bfb1a9 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
@@ -68,4 +68,5 @@ jobs:
         with:
           app-name: 'PDF-ChatBot'
           slot-name: 'Production'
+
           
