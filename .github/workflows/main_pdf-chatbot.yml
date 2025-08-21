@@ -55,12 +55,13 @@ jobs:
         with:
           name: python-app
       
-      - name: Login to Azure
-        uses: azure/login@v2
+      - name: 'Azure Login'
+        uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_bb93a37c-5ce1-4952-8c85-1e4e4596bf35 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1d3149dd-3040-4ff2-88f3-a6902396a108 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_a435eee1-e2de-4fce-967c-96def5bfb1a9 }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
@@ -70,3 +71,4 @@ jobs:
           slot-name: 'Production'
 
           
+
