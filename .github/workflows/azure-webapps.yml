@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # required for checkout
+      contents: read
 
     steps:
       - name: Checkout code
@@ -21,14 +21,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Create virtual environment and install dependencies
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Optional: run tests
+      # Optional test step
       # - name: Run tests
       #   run: pytest
 
@@ -37,7 +35,12 @@ jobs:
         with:
           name: python-app
           path: |
-            .
+            app.py
+            requirements.txt
+            static/
+            templates/
+            pdfs/
+            chroma_store/
             !venv/
             !.git/
             !__pycache__/
@@ -60,11 +63,4 @@ jobs:
           app-name: 'PDF-ChatBot'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-          package: .
-
-      - name: Configure startup command
-        run: |
-          az webapp config set \
-            --resource-group pdf-chatbot-rg \
-            --name PDF-ChatBot \
-            --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+          package: .  # now artifact root, not entire repo
