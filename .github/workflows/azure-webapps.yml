@@ -68,6 +68,8 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: ./deploy-folder
+          configuration-strings: 'SCM_DO_BUILD_DURING_DEPLOYMENT=true'
+
 
       # Step 3: Configure startup command
       - name: Configure startup command
