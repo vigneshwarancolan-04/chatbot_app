@@ -33,12 +33,16 @@ jobs:
       # - name: Run tests
       #   run: pytest
 
-      # Step 4: Prepare clean deploy folder
+     # Step 4: Prepare clean deploy folder
       - name: Prepare deploy folder
         run: |
           mkdir deploy-folder
           cp app.py requirements.txt deploy-folder/
-          cp -r templates static pdfs chroma_store deploy-folder/
+          # Copy folders only if they exist
+          [ -d templates ] && cp -r templates deploy-folder/ || echo "templates folder not found"
+          [ -d pdfs ] && cp -r pdfs deploy-folder/ || echo "pdfs folder not found"
+          [ -d chroma_store ] && cp -r chroma_store deploy-folder/ || echo "chroma_store folder not found"
+
 
       # Step 5: Upload deploy folder as artifact
       - name: Upload deploy artifact
