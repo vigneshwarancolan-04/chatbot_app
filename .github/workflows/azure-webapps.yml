@@ -9,78 +9,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      # Step 1: Checkout the code
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      # Step 2: Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+    - name: Set up Python version
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
 
-      # Step 3: Create virtual environment and install dependencies
-      - name: Create virtual environment and install dependencies
-        run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Create and start virtual environment
+      run: |
+        python -m venv venv
+        source venv/bin/activate
 
-      # Step 4: Create directories needed by the app
-      - name: Create application directories
-        run: |
-          mkdir -p pdfs
-          mkdir -p chroma_store
+    - name: Install dependencies
+      run: |
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      # Step 5: Download NLTK data (required for your app)
-      - name: Download NLTK data
-        run: |
-          source antenv/bin/activate
-          python -c "import nltk; nltk.download('stopwords', quiet=True)"
+    - name: Zip artifact for deployment
+      run: |
+        zip -r release.zip . -x "venv/*" "*.git*" "__pycache__/*" "*.pyc" "pdfs/*" "chroma_store/*"
 
-      # Step 6: Prepare deployment package
-      - name: Prepare deployment package
-        run: |
-          mkdir deploy-folder
-          # Copy main application files
-          cp app.py requirements.txt deploy-folder/
-          
-          # Copy templates directory if it exists
-          if [ -d "templates" ]; then
-            cp -r templates deploy-folder/
-          fi
-          
-          # Copy static directory if it exists
-          if [ -d "static" ]; then
-            cp -r static deploy-folder/
-          fi
-          
-          # Create required directories in deploy folder
-          mkdir -p deploy-folder/pdfs
-          mkdir -p deploy-folder/chroma_store
-          
-          # Copy virtual environment or create requirements for Azure
-          # Azure will handle the virtual environment creation
-          
-          # Create a startup script for Azure
-          echo "#!/bin/bash" > deploy-folder/startup.sh
-          echo "python -m pip install --upgrade pip" >> deploy-folder/startup.sh
-          echo "pip install -r requirements.txt" >> deploy-folder/startup.sh
-          echo "python -c \"import nltk; nltk.download('stopwords', quiet=True)\"" >> deploy-folder/startup.sh
-          echo "gunicorn --bind 0.0.0.0:8000 --timeout 600 app:app" >> deploy-folder/startup.sh
-          chmod +x deploy-folder/startup.sh
-
-      # Step 7: Upload deployment artifact
-      - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: deploy-folder/
+    - name: Upload artifact for deployment job
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-app
+        path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -88,23 +45,20 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      contents: read
 
     steps:
-      # Step 1: Download deployment artifact
-      - name: Download deployment artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-          path: .
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v4
+      with:
+        name: python-app
 
-      # Step 2: Deploy to Azure Web App
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'PDF-ChatBot'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-          package: .
+    - name: Unzip artifact for deployment
+      run: unzip release.zip
+
+    - name: 'Deploy to Azure Web App'
+      uses: azure/webapps-deploy@v3
+      id: deploy-to-webapp
+      with:
+        app-name: 'PDF-ChatBot'
+        slot-name: 'Production'
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
