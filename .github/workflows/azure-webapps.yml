@@ -29,17 +29,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-     # Step 4: Prepare clean deploy folder
+      # Step 4: Prepare deploy folder
       - name: Prepare deploy folder
         run: |
           mkdir deploy-folder
           cp app.py requirements.txt deploy-folder/
-          # Copy folders only if they exist
-          [ -d templates ] && cp -r templates deploy-folder/ || echo "templates folder not found"
-          [ -d pdfs ] && cp -r pdfs deploy-folder/ || echo "pdfs folder not found"
-          [ -d chroma_store ] && cp -r chroma_store deploy-folder/ || echo "chroma_store folder not found"
+          cp -r templates deploy-folder/  # only copy existing folder
 
-      # Step 5: Upload deploy artifact
+      # Step 5: Upload deploy folder as artifact
       - name: Upload deploy artifact
         uses: actions/upload-artifact@v4
         with:
@@ -68,13 +65,3 @@ jobs:
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: ./deploy-folder
-          configuration-strings: 'SCM_DO_BUILD_DURING_DEPLOYMENT=true'
-
-
-      # Step 3: Configure startup command
-      - name: Configure startup command
-        run: |
-          az webapp config set \
-            --resource-group pdf-chatbot-rg \
-            --name PDF-ChatBot \
-            --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
