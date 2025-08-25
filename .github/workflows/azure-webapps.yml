@@ -23,45 +23,88 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Step 3: Install dependencies
-      - name: Install dependencies
+      # Step 3: Create virtual environment and install dependencies
+      - name: Create virtual environment and install dependencies
         run: |
+          python -m venv antenv
+          source antenv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Prepare deploy folder
-      - name: Prepare deploy folder
+      # Step 4: Create directories needed by the app
+      - name: Create application directories
+        run: |
+          mkdir -p pdfs
+          mkdir -p chroma_store
+
+      # Step 5: Download NLTK data (required for your app)
+      - name: Download NLTK data
+        run: |
+          source antenv/bin/activate
+          python -c "import nltk; nltk.download('stopwords', quiet=True)"
+
+      # Step 6: Prepare deployment package
+      - name: Prepare deployment package
         run: |
           mkdir deploy-folder
+          # Copy main application files
           cp app.py requirements.txt deploy-folder/
-          cp -r templates deploy-folder/  # only copy existing folder
+          
+          # Copy templates directory if it exists
+          if [ -d "templates" ]; then
+            cp -r templates deploy-folder/
+          fi
+          
+          # Copy static directory if it exists
+          if [ -d "static" ]; then
+            cp -r static deploy-folder/
+          fi
+          
+          # Create required directories in deploy folder
+          mkdir -p deploy-folder/pdfs
+          mkdir -p deploy-folder/chroma_store
+          
+          # Copy virtual environment or create requirements for Azure
+          # Azure will handle the virtual environment creation
+          
+          # Create a startup script for Azure
+          echo "#!/bin/bash" > deploy-folder/startup.sh
+          echo "python -m pip install --upgrade pip" >> deploy-folder/startup.sh
+          echo "pip install -r requirements.txt" >> deploy-folder/startup.sh
+          echo "python -c \"import nltk; nltk.download('stopwords', quiet=True)\"" >> deploy-folder/startup.sh
+          echo "gunicorn --bind 0.0.0.0:8000 --timeout 600 app:app" >> deploy-folder/startup.sh
+          chmod +x deploy-folder/startup.sh
 
-      # Step 5: Upload deploy folder as artifact
-      - name: Upload deploy artifact
+      # Step 7: Upload deployment artifact
+      - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: deploy-folder
+          path: deploy-folder/
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       contents: read
 
     steps:
-      # Step 1: Download deploy artifact
-      - name: Download build artifact
+      # Step 1: Download deployment artifact
+      - name: Download deployment artifact
         uses: actions/download-artifact@v4
         with:
           name: python-app
-          path: deploy-folder
+          path: .
 
       # Step 2: Deploy to Azure Web App
       - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'PDF-ChatBot'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-          package: ./deploy-folder
+          package: .
