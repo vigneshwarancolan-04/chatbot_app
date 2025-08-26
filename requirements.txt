@@ -1,9 +1,8 @@
-Flask==3.0.3
-gunicorn==21.2.0
-chromadb==0.4.15
-torch==2.3.0
-torchvision==0.18.0
-nltk==3.9.1
-sentence-transformers==3.0.1
-faiss-cpu==1.8.0
-openai==1.40.2
+flask
+gunicorn
+nltk
+chromadb
+sentence-transformers
+openai
+faiss-cpu
+mysql-connector-python
