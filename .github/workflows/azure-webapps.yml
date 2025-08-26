@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
@@ -22,22 +24,47 @@ jobs:
       run: |
         python -m venv venv
         source venv/bin/activate
+        echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
+        echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
 
     - name: Install dependencies
       run: |
-        source venv/bin/activate
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Zip artifact for deployment
+    - name: Create required directories
       run: |
-        zip -r release.zip . -x "venv/*" "*.git*" "__pycache__/*" "*.pyc" "pdfs/*" "chroma_store/*"
+        mkdir -p pdfs chroma_store
 
-    - name: Upload artifact for deployment job
+    - name: Download NLTK data
+      run: |
+        python -c "import nltk; nltk.download('stopwords', quiet=True)"
+
+    - name: Prepare deployment package
+      run: |
+        # Remove virtual environment and cache files from deployment
+        rm -rf venv/
+        find . -type d -name __pycache__ -delete
+        find . -name "*.pyc" -delete
+        
+        # Create startup script for Azure
+        echo "#!/bin/bash" > startup.sh
+        echo "python -m pip install --upgrade pip" >> startup.sh
+        echo "pip install -r requirements.txt" >> startup.sh
+        echo "python -c \"import nltk; nltk.download('stopwords', quiet=True)\"" >> startup.sh
+        echo "mkdir -p pdfs chroma_store" >> startup.sh
+        echo "gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app" >> startup.sh
+        chmod +x startup.sh
+
+    - name: Upload artifact for deployment jobs
       uses: actions/upload-artifact@v4
       with:
         name: python-app
-        path: release.zip
+        path: |
+          .
+          !venv/
+          !.git/
+          !.github/
 
   deploy:
     runs-on: ubuntu-latest
@@ -45,15 +72,15 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      contents: read
 
     steps:
     - name: Download artifact from build job
       uses: actions/download-artifact@v4
       with:
         name: python-app
-
-    - name: Unzip artifact for deployment
-      run: unzip release.zip
+        path: .
 
     - name: 'Deploy to Azure Web App'
       uses: azure/webapps-deploy@v3
@@ -62,3 +89,4 @@ jobs:
         app-name: 'PDF-ChatBot'
         slot-name: 'Production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+        package: .
