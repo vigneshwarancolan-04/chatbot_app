@@ -18,14 +18,7 @@ jobs:
     - name: Set up Python version
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
-
-    - name: Create and start virtual environment
-      run: |
-        python -m venv venv
-        source venv/bin/activate
-        echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
-        echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+        python-version: '3.13'
 
     - name: Install dependencies
       run: |
@@ -36,16 +29,14 @@ jobs:
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
     - name: Create required directories
-      run: |
-        mkdir -p pdfs chroma_store
+      run: mkdir -p pdfs chroma_store
 
     - name: Download NLTK data
-      run: |
-        python -c "import nltk; nltk.download('stopwords', quiet=True)"
+      run: python -c "import nltk; nltk.download('stopwords', quiet=True)"
 
     - name: Prepare deployment package
       run: |
-        # Remove virtual environment and cache files from deployment
+        # Remove unnecessary files
         rm -rf venv/
         find . -type d -name __pycache__ -delete
         find . -name "*.pyc" -delete
@@ -59,15 +50,14 @@ jobs:
         echo "gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app" >> startup.sh
         chmod +x startup.sh
 
+        # Zip everything (excluding junk)
+        zip -r release.zip . -x "venv/*" ".git/*" ".github/*"
+
     - name: Upload artifact for deployment jobs
       uses: actions/upload-artifact@v4
       with:
         name: python-app
-        path: |
-          .
-          !venv/
-          !.git/
-          !.github/
+        path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -85,11 +75,11 @@ jobs:
         name: python-app
         path: .
 
-    - name: 'Deploy to Azure Web App'
+    - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v3
       id: deploy-to-webapp
       with:
         app-name: 'PDF-ChatBot'
         slot-name: 'Production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
-        package: .
+        package: release.zip
