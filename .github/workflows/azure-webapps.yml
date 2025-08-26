@@ -33,4 +33,4 @@ jobs:
         app-name: 'pdf-chatbot'  # Linux App Service name
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
         package: release.zip
-        startup-command: 'gunicorn --bind 0.0.0.0:$PORT app:app'
+        
