@@ -19,40 +19,22 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install dependencies (for build-time validation only)
+    - name: Install dependencies (for validation only)
       run: |
         python -m pip install --upgrade pip
-        pip install wheel setuptools
         pip install --no-cache-dir -r requirements.txt
         pip install chromadb==0.4.15 --no-deps
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        python -c "import nltk; nltk.download('stopwords', quiet=True)"
 
     - name: Create required directories
       run: mkdir -p pdfs chroma_store
 
-    - name: Download NLTK data
-      run: python -c "import nltk; nltk.download('stopwords', quiet=True)"
-
     - name: Prepare deployment package
       run: |
-        # Clean junk
         rm -rf venv/
         find . -type d -name __pycache__ -delete
         find . -name "*.pyc" -delete
-
-        # Create startup script for Azure App Service (Linux)
-        cat << 'EOF' > startup.sh
-        #!/bin/bash
-        set -e
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        python -c "import nltk; nltk.download('stopwords', quiet=True)"
-        mkdir -p pdfs chroma_store
-        exec gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app
-        EOF
-        chmod +x startup.sh
-
-        # Zip everything (exclude repo internals)
         zip -r release.zip . -x "venv/*" ".git/*" ".github/*"
 
     - name: Upload artifact for deployment jobs
@@ -84,3 +66,4 @@ jobs:
         app-name: 'PDF-ChatBot'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
         package: release.zip
+        startup-command: 'gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app'
