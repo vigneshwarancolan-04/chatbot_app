@@ -85,5 +85,3 @@ jobs:
         app-name: 'PDF-ChatBot'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
         package: release.zip
-        # <-- This is critical: tells Azure to run the startup script
-        startup-command: 'bash startup.sh'
