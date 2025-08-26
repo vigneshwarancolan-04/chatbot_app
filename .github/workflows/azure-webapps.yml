@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python version
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
@@ -40,17 +40,20 @@ jobs:
         rm -rf venv/
         find . -type d -name __pycache__ -delete
         find . -name "*.pyc" -delete
-        
-        # Create startup script for Azure
-        echo "#!/bin/bash" > startup.sh
-        echo "python -m pip install --upgrade pip" >> startup.sh
-        echo "pip install -r requirements.txt" >> startup.sh
-        echo "python -c \"import nltk; nltk.download('stopwords', quiet=True)\"" >> startup.sh
-        echo "mkdir -p pdfs chroma_store" >> startup.sh
-        echo "gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app" >> startup.sh
+
+        # Create startup script
+        cat << 'EOF' > startup.sh
+        #!/bin/bash
+        set -e
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        python -c "import nltk; nltk.download('stopwords', quiet=True)"
+        mkdir -p pdfs chroma_store
+        exec gunicorn --bind 0.0.0.0:8000 src.app:app
+        EOF
         chmod +x startup.sh
 
-        # Zip everything (excluding junk)
+        # Zip everything for deployment
         zip -r release.zip . -x "venv/*" ".git/*" ".github/*"
 
     - name: Upload artifact for deployment jobs
@@ -64,7 +67,7 @@ jobs:
     needs: build
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      url: https://pdf-chatbot.azurewebsites.net
     permissions:
       contents: read
 
@@ -80,6 +83,5 @@ jobs:
       id: deploy-to-webapp
       with:
         app-name: 'PDF-ChatBot'
-        slot-name: 'Production'
         publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
         package: release.zip
