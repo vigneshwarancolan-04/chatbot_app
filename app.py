@@ -10,33 +10,31 @@ from openai import OpenAI
 import chromadb
 from nltk.corpus import stopwords
 from dotenv import load_dotenv
-import tempfile
 
-# Ensure directories exist
+# --- Setup paths ---
 os.makedirs('pdfs', exist_ok=True)
-if os.getenv('WEBSITE_SITE_NAME'):  # Running on Azure
-    VECTORSTORE_PATH = '/tmp/chroma_store'
-    os.makedirs('/tmp/chroma_store', exist_ok=True)
+
+# If running on Azure, only /tmp is writable
+if os.getenv("WEBSITE_SITE_NAME"):  
+    VECTORSTORE_PATH = "/tmp/chroma_store"
 else:
     VECTORSTORE_PATH = os.getenv("VECTORSTORE_PATH", "chroma_store")
-    os.makedirs('chroma_store', exist_ok=True)
-    
+
+os.makedirs(VECTORSTORE_PATH, exist_ok=True)
+
 # --- Setup ---
 nltk.download("stopwords", quiet=True)
 stop_words = set(stopwords.words("english"))
-load_dotenv(".env")  # Local only, Azure will use App Service settings
+load_dotenv(".env")  # Only works locally; Azure uses App Service env vars
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'pdfs'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('chroma_store', exist_ok=True)
+app.config["UPLOAD_FOLDER"] = "pdfs"
 
 # --- Environment Variables ---
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
 MYSQL_USER = os.getenv("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
 MYSQL_DB = os.getenv("MYSQL_DB", "chatbot_db")
-VECTORSTORE_PATH = os.getenv("VECTORSTORE_PATH", "chroma_store")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # --- Embeddings & Chroma ---
@@ -202,4 +200,6 @@ def chat(session_id):
     return render_template("chat.html", session_id=session_id, sessions=sessions, history=history)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True, use_reloader=False, threaded=True)
+    # Azure provides PORT env variable; fallback to 5000 locally
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
