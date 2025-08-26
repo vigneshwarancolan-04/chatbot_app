@@ -10,7 +10,17 @@ from openai import OpenAI
 import chromadb
 from nltk.corpus import stopwords
 from dotenv import load_dotenv
+import tempfile
 
+# Ensure directories exist
+os.makedirs('pdfs', exist_ok=True)
+if os.getenv('WEBSITE_SITE_NAME'):  # Running on Azure
+    VECTORSTORE_PATH = '/tmp/chroma_store'
+    os.makedirs('/tmp/chroma_store', exist_ok=True)
+else:
+    VECTORSTORE_PATH = os.getenv("VECTORSTORE_PATH", "chroma_store")
+    os.makedirs('chroma_store', exist_ok=True)
+    
 # --- Setup ---
 nltk.download("stopwords", quiet=True)
 stop_words = set(stopwords.words("english"))
