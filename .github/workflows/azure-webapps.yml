@@ -28,7 +28,7 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'pdf-chatbot'  
+          app-name: 'PDF-ChatBot'  
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: .
           startup-command: "gunicorn --bind=0.0.0.0:\$PORT app:app"
