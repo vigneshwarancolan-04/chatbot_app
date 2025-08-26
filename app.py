@@ -10,6 +10,7 @@ from openai import OpenAI
 import chromadb
 from nltk.corpus import stopwords
 from dotenv import load_dotenv
+from waitress import serve
 
 # --- Setup paths ---
 os.makedirs('pdfs', exist_ok=True)
@@ -201,5 +202,5 @@ def chat(session_id):
 
 if __name__ == "__main__":
     # Azure provides PORT env variable; fallback to 5000 locally
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+    port = int(os.environ.get("PORT", 5000))
+    serve(app, host="0.0.0.0", port=port)
