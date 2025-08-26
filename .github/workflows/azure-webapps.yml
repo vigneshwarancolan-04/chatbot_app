@@ -48,7 +48,6 @@ jobs:
         pip install -r requirements.txt
         python -c "import nltk; nltk.download('stopwords', quiet=True)"
         mkdir -p pdfs chroma_store
-        # NOTE: your Flask app is app.py at repo root with variable "app"
         exec gunicorn --bind 0.0.0.0:8000 --timeout 600 --workers 2 app:app
         EOF
         chmod +x startup.sh
